@@ -1,3 +1,73 @@
+<!-- 最终加固版：卡密激活 + 设备绑定 + Token权限拦截 -->
+<style>
+#cardAuthWrap{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:999999;}
+.auth-box{background:#fff;padding:36px;border-radius:16px;width:340px;text-align:center;}
+.auth-box h3{margin:0 0 8px;color:#222;}
+.auth-box p{margin:0 0 20px;color:#666;font-size:13px;}
+.auth-input{width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid #ddd;border-radius:8px;margin-bottom:16px;font-size:15px;}
+.auth-btn{width:100%;padding:12px;background:#1677ff;color:#fff;border:none;border-radius:8px;font-size:15px;cursor:pointer;}
+</style>
+
+<div id="cardAuthWrap">
+  <div class="auth-box">
+    <h3>助手授权激活</h3>
+    <p>一卡一机·禁止多设备共用</p>
+    <input class="auth-input" id="cardKey" placeholder="请输入授权卡密">
+    <button class="auth-btn" onclick="checkCardAuth()">立即激活</button>
+  </div>
+</div>
+
+<script>
+// ========= 配置项（已固定你的服务器）=========
+const CARD_API = "http://129.211.66.15";
+// ===========================================
+
+// 生成设备唯一指纹（浏览器本机标识）
+function getDeviceId(){
+  let fid = localStorage.getItem("device_id");
+  if(!fid){
+    fid = "dev_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    localStorage.setItem("device_id", fid);
+  }
+  return fid;
+}
+const deviceId = getDeviceId();
+
+// 已授权则隐藏弹窗
+if(localStorage.getItem("xyzw_card_ok")){
+  document.getElementById("cardAuthWrap").style.display = "none";
+}
+
+// 卡密验证 + 设备绑定
+async function checkCardAuth(){
+  const key = document.getElementById("cardKey").value.trim();
+  if(!key) return alert("请输入卡密");
+  try{
+    const res = await fetch(`${CARD_API}/api/check?key=${key}&dev=${deviceId}`);
+    const json = await res.json();
+    if(json.code === 200){
+      localStorage.setItem("xyzw_card_ok", key);
+      document.getElementById("cardAuthWrap").style.display = "none";
+      alert("✅ 激活成功｜设备已绑定｜正常使用全部功能");
+    }else{
+      alert("❌ " + (json.msg || "卡密无效/过期/已绑定其他设备/额度用尽"));
+    }
+  }catch(err){
+    alert("❌ 授权服务器连接失败，请稍后重试");
+  }
+}
+
+// 全局强拦截：未授权 禁止 新增/添加/保存/导入Token
+document.addEventListener("click",function(e){
+  const txt = e.target.innerText || "";
+  const needAuth = ["新增","添加","保存","导入","生成","创建"].some(k=>txt.includes(k));
+  if(needAuth && !localStorage.getItem("xyzw_card_ok")){
+    e.stopImmediatePropagation();
+    e.preventDefault();
+    alert("⚠️ 请先输入有效卡密完成设备授权！");
+  }
+},true);
+</script>
 <!doctype html>
 <html lang="zh-CN">
   <head>
