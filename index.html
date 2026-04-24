@@ -1,27 +1,3 @@
-// 可配置项
-const VALID_KEYS = new Set([
-  "test20260424",
-  "your-key-1",
-  "your-key-2"
-]);
-const KEY_PARAM = "key"; // URL 携带参数：?key=xxx
-
-async function handleRequest(request) {
-  const url = new URL(request.url);
-  const key = url.searchParams.get(KEY_PARAM);
-
-  // 无卡密 / 卡密无效 → 拦截
-  if (!key || !VALID_KEYS.has(key)) {
-    return new Response("请提供有效卡密", { status: 403 });
-  }
-
-  // 验证通过 → 正常访问
-  return fetch(request);
-}
-
-addEventListener("fetch", (event) => {
-  event.respondWith(handleRequest(event.request));
-});
 <!doctype html>
 <html lang="zh-CN">
   <head>
